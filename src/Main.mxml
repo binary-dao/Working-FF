@@ -1,0 +1,338 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+layout="absolute" styleName="plain"  
+creationComplete="initFunnyFarm()"
+horizontalAlign="center"
+>
+
+	<mx:Script>
+		<![CDATA[
+		import flash.events.StatusEvent;
+		import flash.media.Sound;
+		import flash.net.LocalConnection;
+		import flash.net.sendToURL;
+		import flash.net.URLRequest;
+		import adobe.utils.ProductManager;
+		import flash.display.Loader;
+		import flash.display.MovieClip;
+		import flash.display.Sprite;
+		import flash.events.Event;
+		import flash.events.FocusEvent;
+		import flash.events.TextEvent;
+		import flash.net.URLRequest;
+		import flash.net.URLRequest;
+		import flash.text.StyleSheet;
+		import flash.text.TextField;
+		import flash.text.TextFormat;
+		import flashx.textLayout.accessibility.TextAccImpl;
+		import flashx.textLayout.formats.Float;
+		import flashx.textLayout.utils.NavigationUtil;
+		import mx.accessibility.LabelAccImpl;
+		import mx.charts.CandlestickChart;
+		import mx.containers.Canvas;
+		import flash.events.TimerEvent;
+		import flash.filters.GradientGlowFilter;
+		import flash.ui.Keyboard;
+		import mx.collections.ArrayCollection;
+		import mx.containers.Canvas;
+		import mx.containers.Panel;
+		import mx.containers.TitleWindow;
+		import mx.controls.Button;
+		import mx.controls.CheckBox;
+		import mx.controls.DataGrid;
+		import mx.controls.Alert;
+		import flash.events.KeyboardEvent;
+		import flash.utils.Timer;
+		import mx.controls.Label;
+		import mx.controls.SWFLoader;
+		import mx.controls.Text;
+		import mx.controls.TextArea;
+		import mx.controls.TextInput;
+		import mx.core.DragSource;
+		import mx.core.IFlexDisplayObject;
+		import mx.effects.Glow;
+		import mx.effects.Move;
+		import mx.events.CloseEvent;
+		import mx.events.Request;
+		import mx.events.ResizeEvent;
+		import mx.events.StateChangeEvent;
+		import mx.rpc.http.HTTPService;	
+		import mx.events.FlexEvent;
+		import flash.events.MouseEvent;
+		import mx.rpc.events.ResultEvent;
+		import mx.rpc.events.FaultEvent;
+		import flash.display.BitmapData;
+		import flash.geom.Matrix;
+		import mx.managers.PopUpManager;
+		import mx.controls.Label;
+		import flash.net.URLVariables;
+		import spark.components.NavigatorContent;
+		import mx.core.FlexGlobals;
+		import flash.display.Shape; 
+		import flash.display.GradientType; 
+		import flash.geom.Matrix;
+		import com.ImageCached;
+		import XML;
+		import XMLList;
+		import mx.events.DragEvent;
+		import mx.managers.DragManager;
+		import flash.net.URLStream;
+		
+		public var fieldFrame:Canvas;
+		public var xml:XML;
+		public var arrFlowers:Array;
+		public var arrImg:Array;
+		public var panelFrame:Canvas;
+		public var digOn:Boolean;
+		public var dragOn:Boolean;
+		public var dragType:String;
+		public var dragPic:ImageCached;
+		public var stream:URLStream;
+		public var serverLabel:Label;
+		public var digLabel:Label;
+		public var refreshTimer:Timer;
+		
+		public function initFunnyFarm():void //точка входа
+		{
+			getField();
+			refreshTimer = new Timer(10000);
+			refreshTimer.addEventListener(TimerEvent.TIMER, refresh);
+			refreshTimer.start();
+		}
+		
+		public function refresh(e:TimerEvent):void //ежеминутное обновление игры
+		{
+			letsStream("http://178.72.112.151:3000");
+		}
+	
+		public function initInterface():void //добавление канвы под кнопки и самих кнопок
+		{
+			panelFrame = new Canvas();
+			panelFrame.x = 800;
+			addChild(panelFrame);
+			
+			var butClover:com.ImageCached = new com.ImageCached();
+			butClover.y = 10;
+			butClover.x = 0;
+			butClover..source = "http://fractured.ru/ruby/img/clover/5.png";
+			butClover.addEventListener(MouseEvent.MOUSE_DOWN, dragIt);
+			butClover.name = "clover";
+			panelFrame.addChild(butClover);
+			
+			var butPotato:com.ImageCached = new com.ImageCached();
+			butPotato.y = 90;
+			butPotato.x = 0;
+			butPotato.source = "http://fractured.ru/ruby/img/potato/5.png";
+			butPotato.addEventListener(MouseEvent.MOUSE_DOWN, dragIt);
+			butPotato.name = "potato";
+			panelFrame.addChild(butPotato);
+			
+			var butSunflower:com.ImageCached = new com.ImageCached();
+			butSunflower.y = 170;
+			butSunflower.x = 0;
+			butSunflower.source = "http://fractured.ru/ruby/img/sunflower/5.png";
+			butSunflower.addEventListener(MouseEvent.MOUSE_DOWN, dragIt);
+			butSunflower.name = "sunflower";
+			panelFrame.addChild(butSunflower);
+			
+			var but:Label = new Label();
+			but.buttonMode = true;
+			but.mouseChildren = false;
+			but.useHandCursor = true;
+			but.text = "Сделать ход";
+			but.y = 300;
+			but.addEventListener(MouseEvent.CLICK, flow);
+			panelFrame.addChild(but);
+			
+			digLabel = new Label();
+			digLabel.buttonMode = true;
+			digLabel.mouseChildren = false;
+			digLabel.useHandCursor = true;
+			digLabel.text = "Собрать";
+			digLabel.y = 330;
+			digLabel.addEventListener(MouseEvent.CLICK, dig);
+			panelFrame.addChild(digLabel);
+			
+			
+			serverLabel = new Label();
+			serverLabel.text = "Связь с сервером...";
+			serverLabel.y = 380;
+			serverLabel.visible = false;
+			panelFrame.addChild(but);	
+		}
+		
+		public function letsStream(s:String):void //отправкак get-запроса на сервер со строкой s
+		{
+			if(stream!=null)
+			stream.removeEventListener(Event.COMPLETE, stream_complete);
+			stream = new URLStream();
+			stream.load(new URLRequest(s));
+			stream.addEventListener(Event.COMPLETE, stream_complete);
+			if (serverLabel != null)
+			serverLabel.visible = true;
+		}
+		
+		public function flow(e:Event):void //запрос "полить всё"
+		{
+			letsStream("http://178.72.112.151:3000/?id=flood");
+		}
+		
+		public function dig(e:Event):void //включить режим сбора цветов
+		{
+			digOn = true;
+			digLabel.text = "Выберите цветок";
+		}
+		
+		public function parseXML():void //перевод XML в объект
+		{
+			arrFlowers = new Array();
+			for (var i:int = 0; i < xml.field.elements().length(); i++)
+			{
+			arrFlowers[arrFlowers.length] = new Object();
+			arrFlowers[arrFlowers.length - 1].id = String(xml.field.elements()[i].attribute("id"));
+			arrFlowers[arrFlowers.length - 1].x = String(xml.field.elements()[i].attribute("x"));
+			arrFlowers[arrFlowers.length - 1].y = String(xml.field.elements()[i].attribute("y"));
+			arrFlowers[arrFlowers.length - 1].process_end = String(xml.field.elements()[i].attribute("process_end"));
+			arrFlowers[arrFlowers.length - 1].type = String(xml.field.elements()[i].name());
+			}
+			
+		}
+		
+		public function initField():void //создание игрового поля
+		{
+			fieldFrame = new Canvas();
+			fieldFrame.width = 800;
+			fieldFrame.height = 600;
+			addChild(fieldFrame);
+			var back:ImageCached = new ImageCached();
+			back.source = "http://fractured.ru/ruby/img/BG.jpg";
+			back.addEventListener(MouseEvent.MOUSE_UP, dropIt);
+			fieldFrame.addChild(back);
+		}
+		
+		public function initFlowers():void //установка цветов на поле
+		{
+			if(arrImg!=null)
+			for (var i:int = 0; i < arrImg.length; i++)
+			{
+			arrImg[i].removeEventListener(Event.RESIZE, realign);
+			arrImg[i].removeEventListener(MouseEvent.CLICK, flowerClick);
+			arrImg[i].removeEventListener(MouseEvent.MOUSE_UP, dropIt);
+			arrImg[i].visible = false;
+			}
+			arrImg = null;
+			arrImg = new Array();
+			for (i = 0; i < arrFlowers.length; i++)
+			{
+				arrImg[i] = new com.ImageCached();
+				var phaze:int = 5 - Math.floor(Number(arrFlowers[i].process_end) / 10000000);
+				if (phaze > 5) phaze = 5;
+				if (phaze < 1) phaze = 1;
+				arrImg[i].name = String(i);
+				arrImg[i].source = "http://fractured.ru/ruby/img/" + arrFlowers[i].type + "/"+phaze+".png";
+				arrImg[i].x = 117+arrFlowers[i].x*76+arrFlowers[i].y*76;
+				arrImg[i].y = 360 - arrFlowers[i].x * 40 + arrFlowers[i].y * 40;
+				arrImg[i].addEventListener(Event.RESIZE, realign);
+				arrImg[i].addEventListener(MouseEvent.CLICK, flowerClick);
+				arrImg[i].addEventListener(MouseEvent.MOUSE_UP, dropIt);
+				fieldFrame.addChild(arrImg[i]);
+			}
+			bubbling();
+		}
+		
+		public function bubbling():void //перемешивание цветов, чтобы те, что на переднем плане не перекрывались задними
+		{
+			for (var i:int = -10; i < 11; i++)
+			{
+				for (var j:int = 0; j < arrFlowers.length; j++)
+				if (arrFlowers[j].y - arrFlowers[j].x == i)
+				fieldFrame.setChildIndex(arrImg[j], fieldFrame.numChildren - 1);
+			}
+		}
+		
+		public function flowerClick(e:Event):void //обработка нажатия на цветок
+		{
+			if (!digOn) return;
+			var i:int = int(e.currentTarget.name);
+			letsStream("http://178.72.112.151:3000/?id=grab&x=" + arrFlowers[i].x + "&y=" + arrFlowers[i].y);
+			var s:String="http://178.72.112.151:3000/?id=grab&x=" + arrFlowers[i].x + "&y=" + arrFlowers[i].y;
+			digOn = false;
+			digLabel.text = "Собрать";
+		}
+		
+		public function realign(e:Event):void //передвижение изображение, если оно меньше планируемого
+		{
+			ImageCached(e.currentTarget).y += 100 - ImageCached(e.currentTarget).contentHeight;
+			ImageCached(e.currentTarget).x += 100 - ImageCached(e.currentTarget).contentWidth;
+		}
+		
+		public function dropIt(e:Event):void //функция отжатия кнопки мыши
+		{
+			if (!dragOn) return;
+			if (mouseX > fieldFrame.width || mouseY > fieldFrame.height) return;
+			dragOn = false;
+			var ymouse:int = fieldFrame.mouseY - 432 + fieldFrame.verticalScrollPosition; 
+			if (dragType == "sunflower") ymouse -= 50;
+			var xmouse:int = fieldFrame.mouseX  - 113 + fieldFrame.horizontalScrollPosition;
+			var x:int =  Math.round((xmouse * 0.447 - ymouse * 0.884) / 68)-1;
+			var y:int = Math.round(( xmouse * 0.447 + ymouse * 0.884) / 68); 
+			if (x > 7 || y > 7 || x < 0 || y < 0)
+			{
+				return;
+			}
+			for (var i:int = 0; i < arrFlowers.length; i++)
+			{
+				if (arrFlowers[i].x == x && arrFlowers[i].y == y) return;
+			}
+			dragPic.visible = false;
+			letsStream("http://178.72.112.151:3000/?id=seed&looks="+dragType+"&x="+x+"&y="+y);
+		}
+		
+		public function getField():void //изначальный запрос к серверу
+		{
+			letsStream("http://178.72.112.151:3000");
+		}
+ 
+		public function stream_complete(event:Event):void //обработка полученного с сервера результата
+		{
+			if (serverLabel != null)
+			serverLabel.visible = false;
+			var s:String = String(stream.readUTFBytes(stream.bytesAvailable));
+			s = String(s.substr(s.indexOf("<body>", 0) + 8));
+			var x:int = s.indexOf("</body>");
+			s = s.substr(0, x);
+			xml = new XML(s);
+			parseXML();
+			if (fieldFrame==null) initField();
+			initFlowers();
+			if (panelFrame==null) initInterface();
+			//start refresh timer
+		}
+		
+		 private function dragIt(e:MouseEvent):void //начало перетаскивания цветка
+		 {
+			dragOn = true;
+			dragType = e.currentTarget.name;
+			var dragInitiator:com.ImageCached=com.ImageCached(e.currentTarget);
+			var ds:DragSource = new DragSource();
+			var canvasProxy:Canvas = new Canvas();
+			canvasProxy.width=300;
+			canvasProxy.height = 300;
+			if (dragPic != null) 
+			{
+			dragPic.removeEventListener(MouseEvent.MOUSE_UP, dropIt);
+			dragPic.removeEventListener(Event.RESIZE, realign);
+			}
+			dragPic = new ImageCached();
+			dragPic.source = "http://fractured.ru/ruby/img/"+dragType+"/1.png";
+			dragPic.addEventListener(MouseEvent.MOUSE_UP, dropIt);
+			dragPic.addEventListener(Event.RESIZE, realign);
+			canvasProxy.addChild(dragPic);
+			canvasProxy.setStyle('backgroundColor', dragInitiator.getStyle('backgroundColor'));
+			DragManager.doDrag(dragInitiator, ds, e, canvasProxy);
+			
+		}
+		
+		]]>
+</mx:Script>
+</mx:Application>
