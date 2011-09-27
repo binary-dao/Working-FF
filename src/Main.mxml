@@ -102,7 +102,7 @@ horizontalAlign="center"
 		
 		public function refresh(e:TimerEvent):void //ежеминутное обновление игры
 		{
-			letsStream("http://178.72.112.151:3000");
+			letsStream("");
 		}
 	
 		public function initInterface():void //добавление канвы под кнопки и самих кнопок
@@ -166,7 +166,7 @@ horizontalAlign="center"
 			if(stream!=null)
 			stream.removeEventListener(Event.COMPLETE, stream_complete);
 			stream = new URLStream();
-			stream.load(new URLRequest(s));
+			stream.load(new URLRequest("http://178.72.113.207:3000/"+s));
 			stream.addEventListener(Event.COMPLETE, stream_complete);
 			if (serverLabel != null)
 			serverLabel.visible = true;
@@ -174,7 +174,7 @@ horizontalAlign="center"
 		
 		public function flow(e:Event):void //запрос "полить всё"
 		{
-			letsStream("http://178.72.112.151:3000/?id=flood");
+			letsStream("?id=flood");
 		}
 		
 		public function dig(e:Event):void //включить режим сбора цветов
@@ -254,8 +254,7 @@ horizontalAlign="center"
 		{
 			if (!digOn) return;
 			var i:int = int(e.currentTarget.name);
-			letsStream("http://178.72.112.151:3000/?id=grab&x=" + arrFlowers[i].x + "&y=" + arrFlowers[i].y);
-			var s:String="http://178.72.112.151:3000/?id=grab&x=" + arrFlowers[i].x + "&y=" + arrFlowers[i].y;
+			letsStream("?id=grab&x=" + arrFlowers[i].x + "&y=" + arrFlowers[i].y);
 			digOn = false;
 			digLabel.text = "Собрать";
 		}
@@ -285,12 +284,12 @@ horizontalAlign="center"
 				if (arrFlowers[i].x == x && arrFlowers[i].y == y) return;
 			}
 			dragPic.visible = false;
-			letsStream("http://178.72.112.151:3000/?id=seed&looks="+dragType+"&x="+x+"&y="+y);
+			letsStream("?id=seed&looks="+dragType+"&x="+x+"&y="+y);
 		}
 		
 		public function getField():void //изначальный запрос к серверу
 		{
-			letsStream("http://178.72.112.151:3000");
+			letsStream("");
 		}
  
 		public function stream_complete(event:Event):void //обработка полученного с сервера результата
